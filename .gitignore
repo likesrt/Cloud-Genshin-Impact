@@ -38,3 +38,4 @@ app.log
 *.bak
 *.backup
 .env
+config.py

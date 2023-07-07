@@ -1,135 +1,126 @@
 import logging
-import os
-import smtplib
-from email.mime.text import MIMEText
-from email.header import Header
-from datetime import datetime, timedelta
-from dotenv import load_dotenv
+import time
 import requests
-from apscheduler.schedulers.blocking import BlockingScheduler
+from datetime import datetime, timedelta
+from config import USERS, ADMIN_UID, WX_APP_TOKEN
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# 加载环境变量
-load_dotenv()
+host = 'https://api-cloudgame.mihoyo.com'
 
-def send_email(subject, message, receiver):
-    smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = int(os.getenv("SMTP_PORT"))
-    smtp_username = os.getenv("SMTP_USERNAME")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    sender_email = os.getenv("SENDER_EMAIL")
+headers = {
+    "x-rpc-client_type": "2",
+    "x-rpc-app_version": "1.3.0",
+    "x-rpc-sys_version": "11",
+    "x-rpc-channel": "mihoyo",
+    "x-rpc-device_name": "Xiaomi Mi 10 Pro",
+    "x-rpc-device_model": "Mi 10 Pro",
+    "x-rpc-app_id": "1953439974",
+    "Referer": "https://app.mihoyo.com",
+    "Content-Length": "0",
+    "Host": "api-cloudgame.mihoyo.com",
+    "Connection": "Keep-Alive",
+    "Accept-Encoding": "gzip",
+    "User-Agent": "okhttp/3.14.9"
+}
 
-    msg = MIMEText(message, 'plain', 'utf-8')
-    msg['Subject'] = Header(subject, 'utf-8')
-    msg['From'] = sender_email
-    msg['To'] = receiver
 
-    try:
-        server = smtplib.SMTP_SSL(smtp_server, smtp_port)
-        server.login(smtp_username, smtp_password)
-        server.sendmail(sender_email, receiver, msg.as_string())
-        server.quit()
-        logger.info(f"电子邮件已发送到: {receiver}")
-    except Exception as e:
-        logger.error(f"邮件发送失败: {str(e)}")
+def send_wxpusher_notification(content, uids):
+    data = {
+        "appToken": WX_APP_TOKEN,
+        "content": content,
+        "contentType": 1,
+        "uids": uids
+    }
+    response = requests.post("https://wxpusher.zjiecode.com/api/send/message", json=data)
+    response_data = response.json()
+    if response_data["code"] == 1000:
+        logging.info("WxPusher通知发送成功")
+    else:
+        logging.error("WxPusher通知发送失败")
 
-def process_account(token, device_id, token_remark, notification_email):
-    app_id = '1953439974'
-    host = 'https://api-cloudgame.mihoyo.com'
+def process_user(user):
+    token = user["token"]
+    device_id = user["device_id"]
+    remark = user["remark"]
+    notification_uid = user["notification_uid"]
 
-    headers = {
-        "x-rpc-client_type": "2",
-        "x-rpc-app_version": "1.3.0",
-        "x-rpc-sys_version": "11",
-        "x-rpc-channel": "mihoyo",
-        "x-rpc-device_name": "Xiaomi Mi 10 Pro",
-        "x-rpc-device_model": "Mi 10 Pro",
-        "x-rpc-app_id": app_id,
-        "Referer": "https://app.mihoyo.com",
-        "Content-Length": "0",
-        "Host": "api-cloudgame.mihoyo.com",
-        "Connection": "Keep-Alive",
-        "Accept-Encoding": "gzip",
-        "User-Agent": "okhttp/3.14.9"
+    user_headers = {
+        "x-rpc-combo_token": token,
+        "x-rpc-device_id": device_id,
+        **headers
     }
 
     try:
-        headers["x-rpc-combo_token"] = token
-        headers["x-rpc-device_id"] = device_id
+        # 登录
+        rsp = requests.post(f'{host}/hk4e_cg_cn/gamer/api/login', headers=user_headers)
+        logging.debug(f"Login -> {rsp.text}")
 
-        logger.info(f"正在处理: {token}")
-        logger.info(f"备注: {token_remark}")
-        logger.info(f"通知邮箱: {notification_email}")
-
-        rsp = requests.post(f'{host}/hk4e_cg_cn/gamer/api/login', headers=headers)
-        logger.debug(f"Login->{rsp.text}")
-
-        rsp = requests.get(f'{host}/hk4e_cg_cn/wallet/wallet/get', headers=headers)
+        # 获取钱包信息
+        rsp = requests.get(f'{host}/hk4e_cg_cn/wallet/wallet/get', headers=user_headers)
         coins = rsp.json()['data']['coin']
         free_times = rsp.json()['data']['free_time']
         total_time = rsp.json()['data']['total_time']
-        logger.debug(f"Wallet->{rsp.json()}")
-        logger.info(f"米云币:{coins['coin_num']},免费时长:{free_times['free_time']}分钟,总免费时长:{total_time}分钟")
+        logging.debug(f"Wallet -> {rsp.json()}")
+        
+        # 构建用户签到信息的字符串
+        sign_in_info = f"{remark} - 米云币:{coins['coin_num']},免费时长:{free_times['free_time']}分钟,总免费时长:{total_time}分钟"
 
-        rsp = requests.get(f'{host}/hk4e_cg_cn/gamer/api/listNotifications?status=NotificationStatusUnread'
-                           f'&type=NotificationTypePopup&is_sort=true', headers=headers)
-        logger.debug(f"ListNotifications->{rsp.text}")
-        rewards = rsp.json()['data']['list']
-        logger.info(f"总共有{len(rewards)}个奖励待领取。")
-
-        for reward in rewards:
-            reward_id = reward['id']
-            reward_msg = reward['msg']
-            rsp = requests.post(f'{host}/hk4e_cg_cn/gamer/api/ackNotification',
-                                json={
-                                    "id": reward_id
-                                },
-                                headers=headers)
-            logger.info(f"领取奖励,ID:{reward_id},Msg:{reward_msg}")
-            logger.debug(f"AckNotification->{rsp.text}")
-
-        rsp = requests.get(f'{host}/hk4e_cg_cn/wallet/wallet/get', headers=headers)
-        coins = rsp.json()['data']['coin']
-        free_times = rsp.json()['data']['free_time']
-        total_time = rsp.json()['data']['total_time']
-        logger.debug(f"Wallet->{rsp.json()}")
-        logger.info(f"米云币:{coins['coin_num']},免费时长:{free_times['free_time']}分钟,总免费时长:{total_time}分钟")
-
-        logger.debug("处理成功")
-        result = "处理成功"
+        return "签到成功", sign_in_info
     except Exception as e:
-        logger.error(f"处理失败: {str(e)}")
-        result = "处理失败"
+        logging.error(f"{remark} - 处理失败: {str(e)}")
+        return "签到失败", ""
 
-    # 发送签到结果通知
-    subject = f"{token_remark}-签到结果"
-    message = f"账号备注: {token_remark}\n签到结果: {result}"
-    send_email(subject, message, notification_email)
+def sign_in():
+    now = datetime.now()
+    content = f"签到通知 - {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    success_users = []
 
-def main_handler():
-    tokens = os.getenv("TOKEN").split(',')
-    device_ids = os.getenv("DEVICE_ID").split(',')
-    token_remarks = os.getenv("TOKEN_REMARKS").split(',')
-    notification_emails = os.getenv("NOTIFICATION_EMAILS").split(',')
-    admin_email = os.getenv("ADMIN_EMAIL")
+    for user in USERS:
+        status, sign_in_info = process_user(user)
+        remark = user["remark"]
+        if status == "签到成功":
+            success_users.append(remark)
+            
+        # 构建用户独立通知的内容，包括签到信息和钱包信息
+        user_content = f"{remark} - {status}\n{sign_in_info}"
+        send_wxpusher_notification(user_content, [user["notification_uid"]])
+        
+        content += f"{remark} - {status}\n"
 
-    for token, device_id, token_remark, notification_email in zip(tokens, device_ids, token_remarks, notification_emails):
-        process_account(token, device_id, token_remark, notification_email)
+    content += f"成功签到用户数: {len(success_users)}\n"
+    if len(success_users) > 0:
+        content += "成功签到的用户:\n"
+        for user in success_users:
+            content += f"- {user}\n"
 
-    # 发送管理员通知
-    subject = "云原神所有账号签到情况"
-    message = f"签到时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-    for token_remark in token_remarks:
-        message += f"账号备注: {token_remark}\n签到结果: 未知\n\n"
-    send_email(subject, message, admin_email)
+    send_wxpusher_notification(content, [ADMIN_UID])
+
+
+
+def main_handler(event, context):
+    try:
+        sign_in()
+
+        logging.info("处理成功")
+        return "处理成功"
+    except Exception as e:
+        logging.error(f"处理失败: {str(e)}")
+        send_wxpusher_notification("处理失败，请检查日志", [ADMIN_UID])
+        return "处理失败"
+
 
 if __name__ == '__main__':
-    main_handler()
+    sign_in()
+    # 设置定时器，每天零点40分执行一次签到
+    now = datetime.now()
+    target_time = now.replace(hour=0, minute=40, second=0, microsecond=0)
+    if now > target_time:
+        target_time += timedelta(days=1)
+    delta = target_time - now
+    delay_seconds = delta.total_seconds()
 
-    # 创建定时任务调度器
-    scheduler = BlockingScheduler()
-    scheduler.add_job(main_handler, 'cron', hour=0, minute=05)  
-    # 启动调度器
-    scheduler.start()
+    logging.info(f"等待 {delay_seconds} 秒后执行签到")
+    time.sleep(delay_seconds)
+    logging.info("开始执行签到")
+    main_handler(None, None)
