@@ -91,7 +91,6 @@ def sign_in():
     now = datetime.now()
     content = f"签到通知 - {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
     success_users = []
-
     for user in USERS:
         status, sign_in_info = process_user(user)
         remark = user["remark"]
@@ -122,9 +121,9 @@ def main():
             logging.error(f"处理失败: {str(e)}")
             send_wxpusher_notification("处理失败，请检查日志", [ADMIN_UID])
 
-        # 设置定时器，每天零点40分执行一次签到
+        # 设置定时器
         now = datetime.now()
-        target_time = now.replace(hour=0, minute=40, second=0, microsecond=0)
+        target_time = now.replace(hour=0, minute=10, second=20) # 这里如果删除秒，会导致在当前分钟无限循环，原因是我上面用了for循环。
         if now > target_time:
             target_time += timedelta(days=1)
         delta = target_time - now
