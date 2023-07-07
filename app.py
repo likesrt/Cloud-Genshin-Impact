@@ -2,9 +2,26 @@ import logging
 import time
 import requests
 from datetime import datetime, timedelta
+from logging.handlers import RotatingFileHandler
 from config import USERS, ADMIN_UID, WX_APP_TOKEN
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# 定义日志格式
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+# 创建日志记录器
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# 创建命令行日志处理器
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+logger.addHandler(console_handler)
+
+# 创建文件日志处理器
+file_handler = RotatingFileHandler('app.log', maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
+file_handler.setFormatter(log_formatter)
+logger.addHandler(file_handler)
+
 
 host = 'https://api-cloudgame.mihoyo.com'
 
@@ -39,6 +56,7 @@ def send_wxpusher_notification(content, uids):
     else:
         logging.error("WxPusher通知发送失败")
 
+
 def process_user(user):
     token = user["token"]
     device_id = user["device_id"]
@@ -62,14 +80,12 @@ def process_user(user):
         free_times = rsp.json()['data']['free_time']
         total_time = rsp.json()['data']['total_time']
         logging.debug(f"Wallet -> {rsp.json()}")
-        
-        # 构建用户签到信息的字符串
-        sign_in_info = f"{remark} - 米云币:{coins['coin_num']},免费时长:{free_times['free_time']}分钟,总免费时长:{total_time}分钟"
 
-        return "签到成功", sign_in_info
+        return "签到成功", f"{remark} - 米云币:{coins['coin_num']},免费时长:{free_times['free_time']}分钟,总免费时长:{total_time}分钟"
     except Exception as e:
         logging.error(f"{remark} - 处理失败: {str(e)}")
         return "签到失败", ""
+
 
 def sign_in():
     now = datetime.now()
@@ -81,11 +97,11 @@ def sign_in():
         remark = user["remark"]
         if status == "签到成功":
             success_users.append(remark)
-            
-        # 构建用户独立通知的内容，包括签到信息和钱包信息
+
         user_content = f"{remark} - {status}\n{sign_in_info}"
         send_wxpusher_notification(user_content, [user["notification_uid"]])
-        
+
+
         content += f"{remark} - {status}\n"
 
     content += f"成功签到用户数: {len(success_users)}\n"
@@ -97,30 +113,26 @@ def sign_in():
     send_wxpusher_notification(content, [ADMIN_UID])
 
 
+def main():
+    while True:
+        try:
+            sign_in()
+            logging.info("处理成功")
+        except Exception as e:
+            logging.error(f"处理失败: {str(e)}")
+            send_wxpusher_notification("处理失败，请检查日志", [ADMIN_UID])
 
-def main_handler(event, context):
-    try:
-        sign_in()
+        # 设置定时器，每天零点40分执行一次签到
+        now = datetime.now()
+        target_time = now.replace(hour=0, minute=40, second=0, microsecond=0)
+        if now > target_time:
+            target_time += timedelta(days=1)
+        delta = target_time - now
+        delay_seconds = delta.total_seconds()
 
-        logging.info("处理成功")
-        return "处理成功"
-    except Exception as e:
-        logging.error(f"处理失败: {str(e)}")
-        send_wxpusher_notification("处理失败，请检查日志", [ADMIN_UID])
-        return "处理失败"
+        logging.info(f"等待 {delay_seconds} 秒后再次执行签到")
+        time.sleep(delay_seconds)
 
 
 if __name__ == '__main__':
-    sign_in()
-    # 设置定时器，每天零点40分执行一次签到
-    now = datetime.now()
-    target_time = now.replace(hour=0, minute=40, second=0, microsecond=0)
-    if now > target_time:
-        target_time += timedelta(days=1)
-    delta = target_time - now
-    delay_seconds = delta.total_seconds()
-
-    logging.info(f"等待 {delay_seconds} 秒后执行签到")
-    time.sleep(delay_seconds)
-    logging.info("开始执行签到")
-    main_handler(None, None)
+    main()

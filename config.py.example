@@ -1,23 +1,25 @@
-# 用户配置 多账号分别填写
+# 用户配置 多账号分别填写,取消注释
 USERS = [
     {
         "token": "1", # 抓包 header中的x-rpc-combo_token
         "44cc0095b9a9": "1", # 抓包 header中的x-rpc-device_id
         "remark": "用户1", # 备注
         "notification_uid": "UID_xxx1" # WxPusherUID
-    },
-    {
-        "token": "2",
-        "device_id": "2",
-        "remark": "用户2",
-        "notification_uid": "UID_xxx2"
-    },
-    {
-        "token": "3",
-        "device_id": "3",
-        "remark": "用户3",
-        "notification_uid": "UID_xxx3"
     }
+    # ,
+    # {
+    #     "token": "2",
+    #     "device_id": "2",
+    #     "remark": "用户2",
+    #     "notification_uid": "UID_xxx2"
+    # }
+    # ,
+    # {
+    #     "token": "3",
+    #     "device_id": "3",
+    #     "remark": "用户3",
+    #     "notification_uid": "UID_xxx3"
+    # }
 ]
 
 # 管理员配置

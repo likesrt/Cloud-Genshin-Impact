@@ -10,7 +10,12 @@
 - 接入WXPusher微信推送状态
 [WXPusher](https://wxpusher.zjiecode.com/admin/)地址 根据提示注册并获取UID和APP_TOKEN填入config.py中
 
-## 使用说明
+## 使用说明  
+
+> 注意： 本项目是使用Python 3.x语法编写的，其中包括了一些Python 3.x才引入的功能和语法。如果您使用的是Python 2.x版本，其中某些部分可能无法直接运行。
+> 
+> 若要在Python 2.x中运行代码，您需要进行一些适应性修改，以兼容Python 2.x的语法和库。
+
 
 1. 安装依赖库：在运行代码之前，请确保已安装以下依赖库：
 - requests
@@ -18,10 +23,7 @@
 ```bash
 pip install requests
 ```
-如果你使用python3，你可能需要使用pip3来安装依赖库。
-```bash
-pip3 install requests
-```
+
 - 如果您使用的是虚拟环境，请确保已经激活了虚拟环境再执行上述命令。
 - 设置配置信息，将config.py.example重命名为config.py。
 - 填写对应信息
@@ -36,23 +38,12 @@ cp config.py.example config.py
 ```
 python app.py
 ```
-如果你使用python3，你可能需要使用python3来运行代码。
-```
-python3 app.py
-```
+
 
 
 
 ### 代码基于 [Cloud-Genshin-Impact 项目](https://github.com/fves1997/Cloud-Genshin-Impact) 修改。
 
-### 本项目已经内置定时器如您使用云函数尝试部署
-请注意以下几点：
+### 本项目已经内置定时器.
 
-1. 在云函数中，不需要手动运行`main_handler`函数或设置定时器。云函数会根据事件触发自动执行代码。
-
-2. 在云函数中，日志将会自动打印到云函数的日志系统中，您可以在云函数的日志中查看日志信息。
-
-3. 请确保您的云函数环境已经正确配置了`config.py`文件中的配置项，并且可以正常访问WxPusher的API。
-
-4. 在云函数中，建议将`sign_in`函数作为云函数的入口函数，并在函数代码中调用`sign_in`函数。
-
+### 如您需要云函数部署,可能需要自定义入口函数，并修改代码中的定时器部分。本人未尝试过云函数部署，如有问题请自行解决。
