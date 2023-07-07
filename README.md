@@ -17,7 +17,7 @@
 > 若要在Python 2.x中运行代码，您需要进行一些适应性修改，以兼容Python 2.x的语法和库。
 
 
-1. 安装依赖库：在运行代码之前，请确保已安装以下依赖库：
+### 安装依赖库：在运行代码之前，请确保已安装以下依赖库：
 - requests
 
 ```bash
@@ -32,11 +32,14 @@ pip install requests
 cp config.py.example config.py
 ```
 
-## 使用
 
-使用以下命令运行代码：
+### 使用以下命令运行代码：
 ```
 python app.py
+```
+### 后台运行
+```
+nohup python app.py &
 ```
 
 
