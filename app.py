@@ -41,7 +41,6 @@ headers = {
     "User-Agent": "okhttp/3.14.9"
 }
 
-
 def send_wxpusher_notification(content, uids):
     data = {
         "appToken": WX_APP_TOKEN,
