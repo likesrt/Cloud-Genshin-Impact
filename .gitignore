@@ -1,0 +1,40 @@
+# 忽略编译生成的文件
+*.o
+*.pyc
+*.class
+
+# 忽略IDE和编辑器生成的文件和文件夹
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# 忽略依赖管理工具生成的文件和文件夹
+/node_modules/
+/vendor/
+
+# 忽略日志文件
+/logs/
+
+# 忽略临时文件和缓存文件
+*.tmp
+*.swp
+.DS_Store
+
+# 忽略敏感信息和配置文件
+.env
+config.ini
+app.log
+
+# 忽略生成的文档和API文档
+/doc/
+/docs/
+
+# 忽略编译生成的可执行文件
+/bin/
+/build/
+
+# 忽略备份文件
+*.bak
+*.backup
+.env
