@@ -70,7 +70,7 @@ python3 app.py
 
 代码中已包含定时任务的设置，可以根据需要进行调整。
 
-
+## 代码基于 https://github.com/fves1997/Cloud-Genshin-Impact 修改 增加邮件通知功能，多账号签到。定时任务
 
 
 
