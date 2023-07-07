@@ -8,7 +8,7 @@
 - 多账号自动签到
 - 定时任务
 - 接入WXPusher微信推送状态
-
+[WXPusher](https://wxpusher.zjiecode.com/admin/)地址 根据提示注册并获取UID和APP_TOKEN填入config.py中
 
 ## 使用说明
 
