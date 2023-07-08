@@ -5,19 +5,13 @@ from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
 from config import USERS, ADMIN_UID, WX_APP_TOKEN
 
-# 定义日志格式
+# 日志处理器
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-# 创建日志记录器
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-# 创建命令行日志处理器
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(log_formatter)
 logger.addHandler(console_handler)
-
-# 创建文件日志处理器
 file_handler = RotatingFileHandler('app.log', maxBytes=10*1024*1024, backupCount=5, encoding='utf-8')
 file_handler.setFormatter(log_formatter)
 logger.addHandler(file_handler)
