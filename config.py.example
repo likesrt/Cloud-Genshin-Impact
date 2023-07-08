@@ -2,7 +2,7 @@
 USERS = [
     {
         "token": "1", # 抓包 header中的x-rpc-combo_token
-        "44cc0095b9a9": "1", # 抓包 header中的x-rpc-device_id
+        "device_id": "1", # 抓包 header中的x-rpc-device_id
         "remark": "用户1", # 备注
         "notification_uid": "UID_xxx1" # WxPusherUID
     }
